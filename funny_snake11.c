@@ -66,6 +66,8 @@ typedef enum _game_status {game_exit=0, game_menu, game_on, game_over,game_next_
 
 Unit *Snake, *Rabbit;
 point *snake_body_frame;
+static cairo_surface_t *surface = NULL;
+
 //-- WINDOW *MainMenu, *tuneMenu;
 
 
@@ -101,6 +103,10 @@ void delElementFromBeginOfArr (point** Arr, int* len);
 void copy_body_frame(point * original,point** copy, int len);
 
 static void activate (GtkApplication* app, gpointer user_data);
+static void close_window(void);
+static gboolean draw_(GtkWidget *widget,cairo_t *cr,gpointer udata);
+static void key_mon(GtkWidget *widget,GdkEvent *event,gpointer udata);
+
 void CreateGameFild();
 int InitUnits();
 int DestroyUnits();
@@ -527,13 +533,37 @@ int DestroyUnits()
 
 //************************************* Game Face   ******************
 
+
+
+
 static void activate(GtkApplication *app, gpointer userdata)
 {
 
 	GtkWidget *window;
+	GtkWidget *frame;
+	GtkWidget *drawing_area;
+
+
 	window=gtk_application_window_new(app);
 	gtk_window_set_title(GTK_WINDOW(window),"FunnySnake11");
 	gtk_window_set_default_size(GTK_WINDOW(window),300,300);
+	g_signal_connect(window,"destroy",G_CALLBACK(close_window),NULL);
+
+	frame=gtk_frame_new(NULL);
+	gtk_frame_set_shadow_type(GTK_FRAME(frame),GTK_SHADOW_IN);
+
+	drawing_area=gtk_drawing_area_new();
+
+	gtk_container_set_border_width(GTK_CONTAINER(window),8);
+	gtk_container_add(GTK_CONTAINER(window),frame);
+	gtk_container_add(GTK_CONTAINER(frame),drawing_area);
+
+	g_signal_connect (drawing_area, "draw", G_CALLBACK (draw_), NULL);
+
+	g_signal_connect(window,"key_press_event",G_CALLBACK(key_mon),NULL);
+
+
+
 	gtk_widget_show_all(window);
 
 	//-------------init ncurses -----------------------------------
@@ -550,10 +580,45 @@ static void activate(GtkApplication *app, gpointer userdata)
 */
 }
 
-void destr_scr()
+static gboolean  draw_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 {
-//	endwin();
+	guint width, height;
+	GdkRGBA color;
+	GtkStyleContext *context;
+
+
+	context=gtk_widget_get_style_context(widget);
+	width=gtk_widget_get_allocated_width(widget);
+	height=gtk_widget_get_allocated_height(widget);
+
+	gtk_render_background(context,cr,0,0,width,height);
+
+	cairo_arc (cr,width/2.0,height/2.0,MIN(width,height)/2.0,0,2*G_PI);
+	
+	gtk_style_context_get_color(context,gtk_style_context_get_state(context),&color);
+	gdk_cairo_set_source_rgba(cr,&color);
+
+	cairo_fill(cr);
+//	g_print("%d\n",width);	
+//	g_print("%d\n",height);	
+
+	return FALSE; 
 }
+
+
+
+static void key_mon(GtkWidget *widget,GdkEvent *event,gpointer udata)
+{
+	g_print("Key Pressed!!!\n" );
+}
+
+static void close_window(void)
+{
+if (surface)
+    cairo_surface_destroy (surface);
+}
+//---VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
+
 
 void CreateGameFild()
 {
