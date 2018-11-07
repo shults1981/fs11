@@ -106,6 +106,8 @@ static void activate (GtkApplication* app, gpointer user_data);
 static void close_window(void);
 static gboolean draw_(GtkWidget *widget,cairo_t *cr,gpointer udata);
 static void key_mon(GtkWidget *widget,GdkEvent *event,gpointer udata);
+static gboolean _scr_update_ (gpointer data);
+
 
 void CreateGameFild();
 int InitUnits();
@@ -562,7 +564,10 @@ static void activate(GtkApplication *app, gpointer userdata)
 
 	g_signal_connect(window,"key_press_event",G_CALLBACK(key_mon),NULL);
 
+	g_timeout_add(1000, _scr_update_ ,window);
 
+//	if ((GameImpuls%2)==0) 
+//		g_signal_emit_by_name (drawing_area,"draw");
 
 	gtk_widget_show_all(window);
 
@@ -579,6 +584,14 @@ static void activate(GtkApplication *app, gpointer userdata)
 	getmaxyx(stdscr,*RowMax,*ColMax);
 */
 }
+static gboolean _scr_update_ (gpointer data)
+{
+	gti_1(1);
+//	GtkWidget *window=(GtkWidget*)data;	
+//	g_signal_emit_by_name (window,"draw");
+	return FALSE;
+}
+
 
 static gboolean  draw_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 {
@@ -861,9 +874,9 @@ int main (int argc, char** argv)
 	
 	//-----------delete screen -------------
 //	destr_scr();
+
 	
 	return status;
 }	
-
 
 
