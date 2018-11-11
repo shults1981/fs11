@@ -104,10 +104,10 @@ void copy_body_frame(point * original,point** copy, int len);
 
 static void activate (GtkApplication* app, gpointer user_data);
 static void close_window(void);
-static gboolean draw_(GtkWidget *widget,cairo_t *cr,gpointer udata);
+static gboolean render_(GtkWidget *widget,cairo_t *cr,gpointer udata);
 static void key_mon(GtkWidget *widget,GdkEvent *event,gpointer udata);
-static gboolean _scr_update_ (gpointer data);
-
+static gboolean _GameTic_ (gpointer data);
+int Game(int state);
 
 void CreateGameFild();
 int InitUnits();
@@ -128,36 +128,40 @@ void snake_control (int ch)
 {
 	switch(ch)
 	{
-		case 37://KEY_LEFT:
+		case GDK_KEY_Left:
 			if (Snake->len==1)
 				move_flag=1;
 			else
 				if ((Snake->len>1)&&(!(Snake->cord[0]._d==2)))
 					move_flag=1;
+		//	g_print("Pressed key -Left key-\n");
 			break;
 			
-		case 39://KEY_RIGHT:
+		case GDK_KEY_Right:
 			if (Snake->len==1)
 				move_flag=2;
 			else
 				if ((Snake->len>1)&&(!(Snake->cord[0]._d==1)))
 					move_flag=2;
+		//	g_print("Pressed key -Right key-\n");
 			break;
 
-		case 38://KEY_UP:
+		case GDK_KEY_Up:
 			if (Snake->len==1)
 				move_flag=3;
 			else			
 				if ((Snake->len>1)&&(!(Snake->cord[0]._d==4)))
 					move_flag=3;	
+		//	g_print("Pressed key -Up key-\n");
 			break;
 
-		case 40://KEY_DOWN:	
+		case GDK_KEY_Down:	
 			if (Snake->len==1)
 				move_flag=4;
 			else			
 				if ((Snake->len>1)&&(!(Snake->cord[0]._d==3)))
 					move_flag=4;
+		//	g_print("Pressed key -Down key-\n");
 			break; 
 		
 		default : break;
@@ -560,40 +564,42 @@ static void activate(GtkApplication *app, gpointer userdata)
 	gtk_container_add(GTK_CONTAINER(window),frame);
 	gtk_container_add(GTK_CONTAINER(frame),drawing_area);
 
-	g_signal_connect (drawing_area, "draw", G_CALLBACK (draw_), NULL);
+	g_signal_connect (drawing_area, "draw", G_CALLBACK (render_), NULL);
 
 	g_signal_connect(window,"key_press_event",G_CALLBACK(key_mon),NULL);
 
-	g_timeout_add(1000, _scr_update_ ,window);
+	g_timeout_add(1000, _GameTic_ ,drawing_area);
 
-//	if ((GameImpuls%2)==0) 
-//		g_signal_emit_by_name (drawing_area,"draw");
 
 	gtk_widget_show_all(window);
 
-	//-------------init ncurses -----------------------------------
-/*	initscr();
-	start_color();
-	nodelay(stdscr,TRUE);
-	curs_set(0);
-	keypad (stdscr, TRUE);
-	noecho();
-	init_pair (1,COLOR_WHITE,COLOR_BLUE);
-	init_pair (2,COLOR_WHITE,COLOR_BLUE);
-	attron(COLOR_PAIR(1));
-	getmaxyx(stdscr,*RowMax,*ColMax);
-*/
 }
-static gboolean _scr_update_ (gpointer data)
-{
+static gboolean _GameTic_ (gpointer data)
+{	
+	GtkWidget *drawing_area;
+	drawing_area=(GtkWidget*)data;
 	gti_1(1);
-//	GtkWidget *window=(GtkWidget*)data;	
-//	g_signal_emit_by_name (window,"draw");
-	return FALSE;
+	Game(1);
+	gtk_widget_queue_draw(drawing_area);
+	return TRUE;
 }
 
+int Game(int state)
+{
+	if (GST==game_on){
+//		rander(0);
+		RabbitFactory();
+		SnakeMoveToOneStep(move_flag,0);
+		if(Score>=NumNextLevelJump)
+			GST=game_next_level;
+//		rander(1);
+	}
 
-static gboolean  draw_(GtkWidget *widget, cairo_t *cr,gpointer udata)
+	g_print ("game step\n");
+	return 0;
+}
+
+static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 {
 	guint width, height;
 	GdkRGBA color;
@@ -601,19 +607,35 @@ static gboolean  draw_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 
 
 	context=gtk_widget_get_style_context(widget);
+
 	width=gtk_widget_get_allocated_width(widget);
 	height=gtk_widget_get_allocated_height(widget);
 
+	row_max=width/4;
+	col_max=height/4;
+
 	gtk_render_background(context,cr,0,0,width,height);
 
-	cairo_arc (cr,width/2.0,height/2.0,MIN(width,height)/2.0,0,2*G_PI);
+	cairo_arc (cr,width/2.0,height/2.0,MIN(width,height)/10.0,0,2*G_PI);
 	
-	gtk_style_context_get_color(context,gtk_style_context_get_state(context),&color);
+//	gtk_style_context_get_color(context,gtk_style_context_get_state(context),&color);
+
+	if ((GameImpuls%2)==0){ 
+		color.red=1.0;
+		color.green=0.0;
+		color.blue=0.0;
+		color.alpha=1.0;
+	}
+	else{
+		color.red=0.0;
+		color.green=1.0;
+		color.blue=0.0;
+		color.alpha=1.0;
+	}
+	
 	gdk_cairo_set_source_rgba(cr,&color);
 
 	cairo_fill(cr);
-//	g_print("%d\n",width);	
-//	g_print("%d\n",height);	
 
 	return FALSE; 
 }
@@ -622,7 +644,47 @@ static gboolean  draw_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 
 static void key_mon(GtkWidget *widget,GdkEvent *event,gpointer udata)
 {
-	g_print("Key Pressed!!!\n" );
+	GdkEventKey *key_event=(GdkEventKey*)event;
+
+	if (key_event->keyval==GDK_KEY_m){
+		GST=game_menu;
+		g_print ("Pressed key -m-\n");
+
+	}
+
+	if (GST==game_menu||GST==game_over){
+		switch (key_event->keyval)  {
+			case GDK_KEY_e:
+				GST=game_exit;
+				g_print("Presed key -e-\n");
+				break;
+			case GDK_KEY_n:
+				GST=game_on;
+				g_print("Pressed key -n-\n");
+				CreateGameFild();
+				rabbitInFild=0;
+				move_flag=rand()%4+1;
+				RabbitWasEaten=0;
+				Score=0;
+				Level=1;
+				InitUnits();
+				break;
+			case GDK_KEY_c:
+				if(Snake && Rabbit)
+				{
+					GST=game_on;
+					g_print("Pressed key -c-\n");
+				}
+				break;	
+			default:
+				break;
+
+		}
+	}
+
+	if (GST==game_on)
+		snake_control (key_event->keyval);	
+
 }
 
 static void close_window(void)
@@ -630,7 +692,7 @@ static void close_window(void)
 if (surface)
     cairo_surface_destroy (surface);
 }
-//---VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
+//---======================********************-------------------------
 
 
 void CreateGameFild()
@@ -743,14 +805,18 @@ int main (int argc, char** argv)
 	int PRG=1;	
 	int status;
 
-//	srand(time(NULL));
-//	signal(SIGALRM, gti_1); //--registering main timer 
+	// initialize  same  variable----------
+	Snake=NULL;
+	Rabbit=NULL;
+	GST=game_menu;	
+
+	srand(time(NULL));
 	
+	// ------initialize GTK 
 	GtkApplication *app;
-	
 	app=gtk_application_new("org.gtk.funny_snake_11", G_APPLICATION_FLAGS_NONE);
 	g_signal_connect(app,"activate",G_CALLBACK(activate),NULL);
-	status=g_application_run(G_APPLICATION(app), argc, argv);
+	status=g_application_run(G_APPLICATION(app), argc, argv);// ---start main loop with 
 	g_object_unref(app);
 
 
@@ -760,14 +826,8 @@ int main (int argc, char** argv)
 	
 //	CreateGameFild();
 
-        // initialize  same  variable----------
-	
-	Snake=NULL;
-	Rabbit=NULL;
-	GST=game_menu;	
-	//timer setpoint value
 
-//	setitimer(ITIMER_REAL,&tmr1,NULL); // start timer
+
 
 
 
@@ -871,9 +931,9 @@ int main (int argc, char** argv)
 */
 	//----------- delete units  -----------
 	DestroyUnits();
-	
+	g_print("exit app\n");
+
 	//-----------delete screen -------------
-//	destr_scr();
 
 	
 	return status;
