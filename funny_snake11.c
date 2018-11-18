@@ -33,10 +33,10 @@
 
 
 //---------------------------------------------------------------
-#define border_x_min (col_max-9*col_max/10)
-#define border_x_max (col_max-2*col_max/10)
-#define border_y_min (row_max-9*row_max/10)
-#define border_y_max (row_max-2*row_max/10)
+#define border_x_min (X_max-9*X_max/10)
+#define border_x_max (X_max-1*X_max/10)
+#define border_y_min (Y_max-9*Y_max/10)
+#define border_y_max (Y_max-1*Y_max/10)
 
 #define NumNextLevelJump 6
 
@@ -73,7 +73,7 @@ static cairo_surface_t *surface = NULL;
 
 static int row,col;
 static int ch;
-static int row_max,col_max;
+static int Y_max,X_max;
 static int move_flag;
 static int rabbitInFild;
 static int Score;
@@ -134,7 +134,7 @@ void snake_control (int ch)
 			else
 				if ((Snake->len>1)&&(!(Snake->cord[0]._d==2)))
 					move_flag=1;
-		//	g_print("Pressed key -Left key-\n");
+			g_print("Pressed key -Left key-\n");
 			break;
 			
 		case GDK_KEY_Right:
@@ -143,7 +143,7 @@ void snake_control (int ch)
 			else
 				if ((Snake->len>1)&&(!(Snake->cord[0]._d==1)))
 					move_flag=2;
-		//	g_print("Pressed key -Right key-\n");
+			g_print("Pressed key -Right key-\n");
 			break;
 
 		case GDK_KEY_Up:
@@ -152,7 +152,7 @@ void snake_control (int ch)
 			else			
 				if ((Snake->len>1)&&(!(Snake->cord[0]._d==4)))
 					move_flag=3;	
-		//	g_print("Pressed key -Up key-\n");
+			g_print("Pressed key -Up key-\n");
 			break;
 
 		case GDK_KEY_Down:	
@@ -161,7 +161,7 @@ void snake_control (int ch)
 			else			
 				if ((Snake->len>1)&&(!(Snake->cord[0]._d==3)))
 					move_flag=4;
-		//	g_print("Pressed key -Down key-\n");
+			g_print("Pressed key -Down key-\n");
 			break; 
 		
 		default : break;
@@ -508,8 +508,8 @@ int InitUnits()
 	Snake->cord=(point*)malloc(sizeof(point)*Snake->len);
 	//for (i=0;i<Snake->len;i++)
 	 //{
-		Snake->cord[0]._y=row_max/2;
-		Snake->cord[0]._x=col_max/2;
+		Snake->cord[0]._y=Y_max/2;
+		Snake->cord[0]._x=X_max/2;
 		Snake->cord[0]._d=1;
 	 //}
 	Snake->num_tpa=0;
@@ -560,6 +560,7 @@ static void activate(GtkApplication *app, gpointer userdata)
 
 	drawing_area=gtk_drawing_area_new();
 
+
 	gtk_container_set_border_width(GTK_CONTAINER(window),8);
 	gtk_container_add(GTK_CONTAINER(window),frame);
 	gtk_container_add(GTK_CONTAINER(frame),drawing_area);
@@ -605,20 +606,33 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	GdkRGBA color;
 	GtkStyleContext *context;
 
+	int  x,y;
 
 	context=gtk_widget_get_style_context(widget);
 
 	width=gtk_widget_get_allocated_width(widget);
 	height=gtk_widget_get_allocated_height(widget);
 
-	row_max=width/4;
-	col_max=height/4;
+	X_max=width;
+	Y_max=height;
 
 	gtk_render_background(context,cr,0,0,width,height);
 
-	cairo_arc (cr,width/2.0,height/2.0,MIN(width,height)/10.0,0,2*G_PI);
+	//---------- Make game fild ----------------------
 	
-//	gtk_style_context_get_color(context,gtk_style_context_get_state(context),&color);
+	color.red=0.0;
+	color.green=0.0;
+	color.blue=0.0;
+	color.alpha=1.0;
+	gdk_cairo_set_source_rgba(cr,&color);
+	cairo_move_to (cr,border_x_min,border_y_min);
+	cairo_line_to(cr,border_x_max,border_y_min);
+	cairo_line_to(cr,border_x_max,border_y_max);
+	cairo_line_to(cr,border_x_min,border_y_max);
+	cairo_line_to(cr,border_x_min,border_y_min);
+	cairo_set_line_width(cr,1.0);
+	cairo_stroke(cr);	
+	//--------------------------------------------------------
 
 	if ((GameImpuls%2)==0){ 
 		color.red=1.0;
@@ -634,7 +648,40 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	}
 	
 	gdk_cairo_set_source_rgba(cr,&color);
+	cairo_move_to (cr,width/2.0,height/2.0);
+	cairo_arc (cr,width/2.0,height/2.0,MIN(width,height)/10.0,0,2*G_PI);
+	cairo_fill(cr);
+//*************************************************
+	if (GST==game_on)
+	{
+		if (rabbitInFild)
+			cairo_move_to(cr,Rabbit->cord->_y,Rabbit->cord->_x);
+			cairo_show_text(cr,"*");
+/*
+		for(i=0;i<Snake->len;i++ )
+		{ 	if (frame_flag)
+				mvaddch(Snake->cord[i]._y,Snake->cord[i]._x,'@');
+			else
+				mvaddch(Snake->cord[i]._y,Snake->cord[i]._x,' ');
+		}
+*/
 
+//		sprintf (str_BUF1,"%d",Score);
+///		mvaddstr(border_y_max+1,border_x_min,"Score-");
+//		mvaddstr(border_y_max+1,border_x_min+7,str_BUF1);
+//		sprintf (str_BUF2,"%d",Level);
+//		mvaddstr(border_y_max+2,border_x_min,"Level-");
+//		mvaddstr(border_y_max+2,border_x_min+7,str_BUF2);
+	}
+
+	if (GST==game_over)
+	{
+//		mvaddstr(border_y_max/2,border_x_max/2-5,"G A M E   O V E R !!!!!");
+//		wrefresh(stdscr);
+//		napms(2000);
+	}
+//**********************************
+//	gtk_style_context_get_color(context,gtk_style_context_get_state(context),&color);
 	cairo_fill(cr);
 
 	return FALSE; 
@@ -697,28 +744,7 @@ if (surface)
 
 void CreateGameFild()
 {
-int row, col;
-/*
-	for (row=0;row<=row_max;row++)
-	{
-		for (col=0;col<=col_max;col++)
-		{
-			move(row,col);
-			if ((row>=border_y_min)&&(row<=border_y_max)&&(col>=border_x_min)&&(col<=border_x_max))
-			{
-				if (row==border_y_min)
-					addch('X');
-				if ((row>=border_y_min)&&(row<=border_y_max)&&(col==border_x_min))
-					addch('X');
-				if ((row>=border_y_min)&&(row<=border_y_max)&&(col==border_x_max))
-					addch('X');
-				if (row==border_y_max)
-					addch('X');
-			}
-			addch(' ');
-		}
-	}
-*/
+
 }
 
 
@@ -820,7 +846,6 @@ int main (int argc, char** argv)
 	g_object_unref(app);
 
 
-//	init_scr(&row_max,&col_max); // initialize ncurses;
 	
 	//---------- Make game fild ----------------------
 	
