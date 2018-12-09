@@ -22,7 +22,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-//---#include <ncurses.h>
 #include<gtk/gtk.h>
 #include <signal.h>
 #include <sys/time.h>
@@ -71,8 +70,6 @@ static cairo_surface_t *surface = NULL;
 //-- WINDOW *MainMenu, *tuneMenu;
 
 
-static int row,col;
-static int ch;
 static int Y_max,X_max;
 static int move_flag;
 static int rabbitInFild;
@@ -86,16 +83,13 @@ static int ImpulsFront=0;
 static int Watchdog=0;
 
 
-//static int tuneMenuStatus;
-
 
 //------------------ declaretion  handlers and functions -------------------------
-void gti_1(int);
+void gti(int);
 void snake_body_manage();
 void SnakeMoveToOneStep(int mv_flag,int kill_self_flag);
 void snake_control(int);
 void RabbitFactory(void);
-void rander(int frame_flag);
 void addNewElementInBackOfSnakeBody(point** Arr, int* len);
 void addNewElementInBackOfArr(point** Arr,int* len, point source);
 void delElementFromBackOfArr( point** Arr, int* len);
@@ -118,7 +112,7 @@ void gameMenuClose();
 
 
 //------------------ define  handlers ----------------------------------
-void gti_1 (int signo)
+void gti (int signo)
 {
 	GameImpuls++;		
 }
@@ -515,8 +509,6 @@ int InitUnits()
 	Snake->num_tpa=0;
 	Snake->tpa=NULL;
 
-//	snake_body_frame=(point*)malloc(sizeof(point)*(Snake->len));
-
 	return 0;
 }
 
@@ -553,6 +545,7 @@ static void activate(GtkApplication *app, gpointer userdata)
 	window=gtk_application_window_new(app);
 	gtk_window_set_title(GTK_WINDOW(window),"FunnySnake11");
 	gtk_window_set_default_size(GTK_WINDOW(window),300,300);
+	gtk_window_set_resizable(GTK_WINDOW(window),FALSE);
 	g_signal_connect(window,"destroy",G_CALLBACK(close_window),NULL);
 
 	frame=gtk_frame_new(NULL);
@@ -569,7 +562,7 @@ static void activate(GtkApplication *app, gpointer userdata)
 
 	g_signal_connect(window,"key_press_event",G_CALLBACK(key_mon),NULL);
 
-	g_timeout_add(1000, _GameTic_ ,drawing_area);
+	g_timeout_add(200, _GameTic_ ,drawing_area);
 
 
 	gtk_widget_show_all(window);
@@ -579,7 +572,7 @@ static gboolean _GameTic_ (gpointer data)
 {	
 	GtkWidget *drawing_area;
 	drawing_area=(GtkWidget*)data;
-	gti_1(1);
+	gti(1);
 	Game(1);
 	gtk_widget_queue_draw(drawing_area);
 	return TRUE;
@@ -588,12 +581,10 @@ static gboolean _GameTic_ (gpointer data)
 int Game(int state)
 {
 	if (GST==game_on){
-//		rander(0);
 		RabbitFactory();
 		SnakeMoveToOneStep(move_flag,0);
 		if(Score>=NumNextLevelJump)
 			GST=game_next_level;
-//		rander(1);
 	}
 
 	g_print ("game step\n");
@@ -607,6 +598,7 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	GtkStyleContext *context;
 
 	int  x,y;
+	int i,k,m,hStep=5,vStep=5;
 
 	context=gtk_widget_get_style_context(widget);
 
@@ -632,6 +624,23 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	cairo_line_to(cr,border_x_min,border_y_min);
 	cairo_set_line_width(cr,1.0);
 	cairo_stroke(cr);	
+//	cairo_move_to(cr,border_x_min,border_y_min-10);
+//	cairo_show_text(cr,"0123456789012345678901234567890123456789");
+
+//	m=border_y_min;
+	for (k=border_x_min;k<=border_x_max;k+=hStep)
+	{
+		cairo_move_to (cr,k,border_y_min);
+		cairo_line_to(cr,k,border_y_max);
+	}
+	for (k=border_y_min;k<=border_y_max;k+=vStep)
+	{
+		cairo_move_to (cr,border_x_min,k);
+		cairo_line_to(cr,border_x_max,k);
+	}
+	cairo_set_line_width(cr,1.0);
+	cairo_stroke(cr);
+
 	//--------------------------------------------------------
 
 	if ((GameImpuls%2)==0){ 
@@ -647,41 +656,41 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 		color.alpha=1.0;
 	}
 	
-	gdk_cairo_set_source_rgba(cr,&color);
-	cairo_move_to (cr,width/2.0,height/2.0);
-	cairo_arc (cr,width/2.0,height/2.0,MIN(width,height)/10.0,0,2*G_PI);
-	cairo_fill(cr);
+ 	gdk_cairo_set_source_rgba(cr,&color);
+
 //*************************************************
 	if (GST==game_on)
 	{
 		if (rabbitInFild)
 			cairo_move_to(cr,Rabbit->cord->_y,Rabbit->cord->_x);
 			cairo_show_text(cr,"*");
-/*
-		for(i=0;i<Snake->len;i++ )
-		{ 	if (frame_flag)
-				mvaddch(Snake->cord[i]._y,Snake->cord[i]._x,'@');
-			else
-				mvaddch(Snake->cord[i]._y,Snake->cord[i]._x,' ');
-		}
-*/
 
-//		sprintf (str_BUF1,"%d",Score);
-///		mvaddstr(border_y_max+1,border_x_min,"Score-");
-//		mvaddstr(border_y_max+1,border_x_min+7,str_BUF1);
-//		sprintf (str_BUF2,"%d",Level);
-//		mvaddstr(border_y_max+2,border_x_min,"Level-");
-//		mvaddstr(border_y_max+2,border_x_min+7,str_BUF2);
+		for(i=0;i<Snake->len;i++ )
+		{
+				cairo_move_to(cr,Snake->cord[i]._x,Snake->cord[i]._y);
+				cairo_show_text(cr,"O");
+		}
+
+
+		sprintf (str_BUF1,"%d",Score);
+		cairo_move_to(cr,border_x_min,border_y_max+10);
+		cairo_show_text(cr,"Score-");
+		cairo_move_to(cr,border_x_min+60,border_y_max+10);
+		cairo_show_text(cr,str_BUF1);
+
+		sprintf (str_BUF2,"%d",Level);
+		cairo_move_to(cr,border_x_min,border_y_max+20);
+		cairo_show_text(cr,"Level-");
+		cairo_move_to(cr,border_x_min+60,border_y_max+20);
+		cairo_show_text(cr,str_BUF1);
 	}
 
 	if (GST==game_over)
 	{
-//		mvaddstr(border_y_max/2,border_x_max/2-5,"G A M E   O V E R !!!!!");
-//		wrefresh(stdscr);
-//		napms(2000);
+		cairo_move_to(cr,border_x_max/2-30,border_y_max/2);
+		cairo_show_text(cr,"G A M E   O V E R !!!!!");
 	}
 //**********************************
-//	gtk_style_context_get_color(context,gtk_style_context_get_state(context),&color);
 	cairo_fill(cr);
 
 	return FALSE; 
@@ -773,48 +782,6 @@ void gameMenuClose()
 //	MainMenu=NULL;
 }
 
-void rander (int frame_flag)
-{
-	int i;
-/*
-	if (GST==game_on)
-	{
-		if (rabbitInFild)
-			mvaddch(Rabbit->cord->_y,Rabbit->cord->_x,'*');
-
-		for(i=0;i<Snake->len;i++ )
-		{ 	if (frame_flag)
-				mvaddch(Snake->cord[i]._y,Snake->cord[i]._x,'@');
-			else
-				mvaddch(Snake->cord[i]._y,Snake->cord[i]._x,' ');
-		}
-
-		sprintf (str_BUF1,"%d",Score);
-		mvaddstr(border_y_max+1,border_x_min,"Score-");
-		mvaddstr(border_y_max+1,border_x_min+7,str_BUF1);
-		sprintf (str_BUF2,"%d",Level);
-		mvaddstr(border_y_max+2,border_x_min,"Level-");
-		mvaddstr(border_y_max+2,border_x_min+7,str_BUF2);
-	}
-
-	if (GST==game_over)
-	{
-		mvaddstr(border_y_max/2,border_x_max/2-5,"G A M E   O V E R !!!!!");
-		wrefresh(stdscr);
-		napms(2000);
-	}
-	if (GST==game_next_level)
-	{
-		mvaddstr(border_y_max/2,border_x_max/2-5,"N E X T     L E V E L !!!!!");
-		wrefresh(stdscr);
-		napms(2000);
-	}
-
-
-	wrefresh(stdscr);
-*/
-}
-
 
 
 
@@ -847,15 +814,6 @@ int main (int argc, char** argv)
 
 
 	
-	//---------- Make game fild ----------------------
-	
-//	CreateGameFild();
-
-
-
-
-
-
 	//--------------------- main cicle---------------		
 /*
 	while (PRG)
@@ -958,7 +916,6 @@ int main (int argc, char** argv)
 	DestroyUnits();
 	g_print("exit app\n");
 
-	//-----------delete screen -------------
 
 	
 	return status;
