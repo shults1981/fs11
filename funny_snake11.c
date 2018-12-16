@@ -32,10 +32,18 @@
 
 
 //---------------------------------------------------------------
+/*
 #define border_x_min (X_max-9*X_max/10)
 #define border_x_max (X_max-1*X_max/10)
 #define border_y_min (Y_max-9*Y_max/10)
 #define border_y_max (Y_max-1*Y_max/10)
+*/
+#define border_x_min 0
+#define border_x_max 50
+#define border_y_min 0
+#define border_y_max 50
+
+
 
 #define NumNextLevelJump 6
 
@@ -172,8 +180,8 @@ if (GST==game_on)
 	RabbitWasEaten=0;
 	if (!rabbitInFild)
 	{
-		Rabbit->cord->_x=border_x_min+rand()%((border_x_max-border_x_min)-1)+1;
-		Rabbit->cord->_y=border_y_min+rand()%((border_y_max-border_y_min)-1)+1;
+		Rabbit->cord->_x=border_x_min+rand()%((border_x_max-border_x_min)); // huinya!!!!
+		Rabbit->cord->_y=border_y_min+rand()%((border_y_max-border_y_min)); // huinya!!!!
 		rabbitInFild=1;
 	}
 	else 
@@ -502,8 +510,8 @@ int InitUnits()
 	Snake->cord=(point*)malloc(sizeof(point)*Snake->len);
 	//for (i=0;i<Snake->len;i++)
 	 //{
-		Snake->cord[0]._y=Y_max/2;
-		Snake->cord[0]._x=X_max/2;
+		Snake->cord[0]._y=border_x_max/2;
+		Snake->cord[0]._x=border_y_max/2;
 		Snake->cord[0]._d=1;
 	 //}
 	Snake->num_tpa=0;
@@ -545,7 +553,7 @@ static void activate(GtkApplication *app, gpointer userdata)
 	window=gtk_application_window_new(app);
 	gtk_window_set_title(GTK_WINDOW(window),"FunnySnake11");
 	gtk_window_set_default_size(GTK_WINDOW(window),300,300);
-	gtk_window_set_resizable(GTK_WINDOW(window),FALSE);
+	//gtk_window_set_resizable(GTK_WINDOW(window),FALSE);
 	g_signal_connect(window,"destroy",G_CALLBACK(close_window),NULL);
 
 	frame=gtk_frame_new(NULL);
@@ -554,7 +562,7 @@ static void activate(GtkApplication *app, gpointer userdata)
 	drawing_area=gtk_drawing_area_new();
 
 
-	gtk_container_set_border_width(GTK_CONTAINER(window),8);
+	gtk_container_set_border_width(GTK_CONTAINER(window),5);
 	gtk_container_add(GTK_CONTAINER(window),frame);
 	gtk_container_add(GTK_CONTAINER(frame),drawing_area);
 
@@ -597,8 +605,10 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	GdkRGBA color;
 	GtkStyleContext *context;
 
-	int  x,y;
-	int i,k,m,hStep=5,vStep=5;
+	guint  x,y;
+	guint i,k,m,hStep,vStep;
+	guint scr_border_x_min,scr_border_x_max,scr_border_y_min,scr_border_y_max;
+
 
 	context=gtk_widget_get_style_context(widget);
 
@@ -607,6 +617,16 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 
 	X_max=width;
 	Y_max=height;
+	scr_border_x_min=(X_max-9*X_max/10);
+	scr_border_x_max=(X_max-1*X_max/10);
+	scr_border_y_min=(Y_max-9*Y_max/10);
+	scr_border_y_max=(Y_max-1*Y_max/10);
+
+	hStep=(scr_border_x_max-scr_border_x_min)/border_x_max;
+	vStep=(scr_border_y_max-scr_border_y_min)/border_y_max;
+	
+//	g_print("%d\n",X_max);
+//	g_print("%d\n",Y_max);
 
 	gtk_render_background(context,cr,0,0,width,height);
 
@@ -617,30 +637,32 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	color.blue=0.0;
 	color.alpha=1.0;
 	gdk_cairo_set_source_rgba(cr,&color);
-	cairo_move_to (cr,border_x_min,border_y_min);
-	cairo_line_to(cr,border_x_max,border_y_min);
-	cairo_line_to(cr,border_x_max,border_y_max);
-	cairo_line_to(cr,border_x_min,border_y_max);
-	cairo_line_to(cr,border_x_min,border_y_min);
+	cairo_move_to (cr,scr_border_x_min,scr_border_y_min);
+	cairo_line_to(cr,scr_border_x_max,scr_border_y_min);
+	cairo_line_to(cr,scr_border_x_max,scr_border_y_max);
+	cairo_line_to(cr,scr_border_x_min,scr_border_y_max);
+	cairo_line_to(cr,scr_border_x_min,scr_border_y_min);
 	cairo_set_line_width(cr,1.0);
 	cairo_stroke(cr);	
-//	cairo_move_to(cr,border_x_min,border_y_min-10);
-//	cairo_show_text(cr,"0123456789012345678901234567890123456789");
 
-//	m=border_y_min;
-	for (k=border_x_min;k<=border_x_max;k+=hStep)
+	cairo_move_to(cr,scr_border_x_min,scr_border_y_min-10);
+	cairo_show_text(cr,"!!!! ");
+
+/*
+	for (k=scr_border_x_min;k<scr_border_x_max;k+=hStep)
 	{
-		cairo_move_to (cr,k,border_y_min);
-		cairo_line_to(cr,k,border_y_max);
+		cairo_move_to (cr,k,scr_border_y_min);
+		cairo_line_to(cr,k,scr_border_y_max);
 	}
-	for (k=border_y_min;k<=border_y_max;k+=vStep)
+	for (k=scr_border_y_min;k<scr_border_y_max;k+=vStep)
 	{
-		cairo_move_to (cr,border_x_min,k);
-		cairo_line_to(cr,border_x_max,k);
+		cairo_move_to (cr,scr_border_x_min,k);
+		cairo_line_to(cr,scr_border_x_max,k);
 	}
+
 	cairo_set_line_width(cr,1.0);
 	cairo_stroke(cr);
-
+*/
 	//--------------------------------------------------------
 
 	if ((GameImpuls%2)==0){ 
@@ -659,37 +681,55 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
  	gdk_cairo_set_source_rgba(cr,&color);
 
 //*************************************************
+
 	if (GST==game_on)
 	{
 		if (rabbitInFild)
-			cairo_move_to(cr,Rabbit->cord->_y,Rabbit->cord->_x);
+/*			cairo_move_to(cr,scr_border_x_min+Rabbit->cord->_x*hStep,
+					scr_border_y_min+Rabbit->cord->_y*vStep);
 			cairo_show_text(cr,"*");
+*/
+		cairo_rectangle(cr,
+				scr_border_x_min+Rabbit->cord->_x*hStep,
+				scr_border_y_min+Rabbit->cord->_y*vStep,
+				hStep,
+				vStep);
+//		cairo_set_line_width(cr,0.5);
+//		cairo_fill(cr);
 
 		for(i=0;i<Snake->len;i++ )
 		{
-				cairo_move_to(cr,Snake->cord[i]._x,Snake->cord[i]._y);
+/*				cairo_move_to(cr,scr_border_x_min+Snake->cord[i]._x*hStep,
+						scr_border_y_min+Snake->cord[i]._y*vStep);
 				cairo_show_text(cr,"O");
+
+*/				cairo_rectangle(cr,
+						scr_border_x_min+Snake->cord[i]._x*hStep,
+						scr_border_y_min+Snake->cord[i]._y*vStep,
+						hStep,
+						vStep);			
 		}
 
-
+		//====  information ====
 		sprintf (str_BUF1,"%d",Score);
-		cairo_move_to(cr,border_x_min,border_y_max+10);
+		cairo_move_to(cr,scr_border_x_min,scr_border_y_max+10);
 		cairo_show_text(cr,"Score-");
-		cairo_move_to(cr,border_x_min+60,border_y_max+10);
+		cairo_move_to(cr,scr_border_x_min+60,scr_border_y_max+10);
 		cairo_show_text(cr,str_BUF1);
 
 		sprintf (str_BUF2,"%d",Level);
-		cairo_move_to(cr,border_x_min,border_y_max+20);
+		cairo_move_to(cr,scr_border_x_min,scr_border_y_max+20);
 		cairo_show_text(cr,"Level-");
-		cairo_move_to(cr,border_x_min+60,border_y_max+20);
+		cairo_move_to(cr,scr_border_x_min+60,scr_border_y_max+20);
 		cairo_show_text(cr,str_BUF1);
 	}
 
 	if (GST==game_over)
 	{
-		cairo_move_to(cr,border_x_max/2-30,border_y_max/2);
+		cairo_move_to(cr,scr_border_x_max/2-30,scr_border_y_max/2);
 		cairo_show_text(cr,"G A M E   O V E R !!!!!");
 	}
+
 //**********************************
 	cairo_fill(cr);
 
