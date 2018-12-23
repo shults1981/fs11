@@ -554,6 +554,7 @@ static void activate(GtkApplication *app, gpointer userdata)
 	gtk_window_set_title(GTK_WINDOW(window),"FunnySnake11");
 	gtk_window_set_default_size(GTK_WINDOW(window),300,300);
 	//gtk_window_set_resizable(GTK_WINDOW(window),FALSE);
+
 	g_signal_connect(window,"destroy",G_CALLBACK(close_window),NULL);
 
 	frame=gtk_frame_new(NULL);
@@ -593,6 +594,24 @@ int Game(int state)
 		SnakeMoveToOneStep(move_flag,0);
 		if(Score>=NumNextLevelJump)
 			GST=game_next_level;
+	}
+
+	if (GST==game_next_level){
+				DestroyUnits();
+				GST=game_on;
+				rabbitInFild=0;
+				move_flag=rand()%4+1;
+				RabbitWasEaten=0;
+				Score=0;
+				Level++;
+				InitUnits();
+				//timer setpoint value
+/*				tmr1.it_value.tv_sec=0;
+				tmr1.it_value.tv_usec=200000-Level*10000;
+				tmr1.it_interval.tv_sec=0;
+				tmr1.it_interval.tv_usec=200000-Level*10000;
+				setitimer(ITIMER_REAL,&tmr1,NULL);// timer whith new setpoint by level
+*/
 	}
 
 	g_print ("game step\n");
@@ -663,51 +682,64 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	cairo_set_line_width(cr,1.0);
 	cairo_stroke(cr);
 */
-	//--------------------------------------------------------
+//--------------------------------------------------------
 
-	if ((GameImpuls%2)==0){ 
-		color.red=1.0;
-		color.green=0.0;
-		color.blue=0.0;
-		color.alpha=1.0;
-	}
-	else{
-		color.red=0.0;
-		color.green=1.0;
-		color.blue=0.0;
-		color.alpha=1.0;
-	}
 	
- 	gdk_cairo_set_source_rgba(cr,&color);
-
 //*************************************************
+	if (GST==game_menu||GST==game_over)
+	{
+		// -- menu border
+		cairo_move_to (cr,scr_border_x_max/2-25,scr_border_y_max/2-10);
+		cairo_line_to(cr,scr_border_x_max/2+65,scr_border_y_max/2-10);
+		cairo_line_to(cr,scr_border_x_max/2+65,scr_border_y_max/2+35);
+		cairo_line_to(cr,scr_border_x_max/2-25,scr_border_y_max/2+35);
+		cairo_line_to(cr,scr_border_x_max/2-25,scr_border_y_max/2-10);
+		cairo_set_line_width(cr,1.0);
+		cairo_stroke(cr);
+		// -- menu text
+		cairo_move_to(cr,scr_border_x_max/2-20,scr_border_y_max/2);
+		cairo_show_text(cr,"       MENU:");
+		cairo_move_to(cr,scr_border_x_max/2-20,scr_border_y_max/2+10);
+		cairo_show_text(cr,"NEW GAME....'n'");
+		cairo_move_to(cr,scr_border_x_max/2-20,scr_border_y_max/2+20);
+		cairo_show_text(cr,"CONTINIE.......'c'");
+		cairo_move_to(cr,scr_border_x_max/2-20,scr_border_y_max/2+30);
+		cairo_show_text(cr,"EXIT.....'ALT+F4'");
+	}
+
 
 	if (GST==game_on)
 	{
+	/*	if ((GameImpuls%2)==0){ 
+			color.red=1.0;
+			color.green=0.0;
+			color.blue=0.0;
+			color.alpha=1.0;
+		}
+		else{
+			color.red=0.0;
+			color.green=1.0;
+			color.blue=0.0;
+			color.alpha=1.0;
+		}
+		gdk_cairo_set_source_rgba(cr,&color);
+	*/	
 		if (rabbitInFild)
-/*			cairo_move_to(cr,scr_border_x_min+Rabbit->cord->_x*hStep,
-					scr_border_y_min+Rabbit->cord->_y*vStep);
-			cairo_show_text(cr,"*");
-*/
-		cairo_rectangle(cr,
-				scr_border_x_min+Rabbit->cord->_x*hStep,
-				scr_border_y_min+Rabbit->cord->_y*vStep,
-				hStep,
-				vStep);
-//		cairo_set_line_width(cr,0.5);
-//		cairo_fill(cr);
+			cairo_rectangle(cr,
+					scr_border_x_min+Rabbit->cord->_x*hStep,
+					scr_border_y_min+Rabbit->cord->_y*vStep,
+					hStep,
+					vStep);
+			cairo_set_line_width(cr,1.5);
+			cairo_fill(cr);
 
 		for(i=0;i<Snake->len;i++ )
 		{
-/*				cairo_move_to(cr,scr_border_x_min+Snake->cord[i]._x*hStep,
-						scr_border_y_min+Snake->cord[i]._y*vStep);
-				cairo_show_text(cr,"O");
-
-*/				cairo_rectangle(cr,
-						scr_border_x_min+Snake->cord[i]._x*hStep,
-						scr_border_y_min+Snake->cord[i]._y*vStep,
-						hStep,
-						vStep);			
+			cairo_rectangle(cr,
+					scr_border_x_min+Snake->cord[i]._x*hStep,
+					scr_border_y_min+Snake->cord[i]._y*vStep,
+					hStep,
+					vStep);			
 		}
 
 		//====  information ====
@@ -721,12 +753,12 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 		cairo_move_to(cr,scr_border_x_min,scr_border_y_max+20);
 		cairo_show_text(cr,"Level-");
 		cairo_move_to(cr,scr_border_x_min+60,scr_border_y_max+20);
-		cairo_show_text(cr,str_BUF1);
+		cairo_show_text(cr,str_BUF2);
 	}
 
 	if (GST==game_over)
 	{
-		cairo_move_to(cr,scr_border_x_max/2-30,scr_border_y_max/2);
+		cairo_move_to(cr,scr_border_x_max/2-30,scr_border_y_max/2-20);
 		cairo_show_text(cr,"G A M E   O V E R !!!!!");
 	}
 
@@ -795,34 +827,6 @@ void CreateGameFild()
 {
 
 }
-
-
-void gameMenuOpen()
-{
-/*
-	MainMenu=newwin(10,20,border_y_max/2-2,border_x_max/2-5);
-	wbkgd(MainMenu,COLOR_PAIR(2));
-	wattron(MainMenu,COLOR_PAIR(2));
-	box(MainMenu,ACS_VLINE,ACS_HLINE);
-	wmove(MainMenu,1,7);
-	waddstr(MainMenu,"MENU:");
-	wmove(MainMenu,3,1);
-	waddstr(MainMenu,"NEW GAME....'n'");
-	wmove(MainMenu,5,1);
-	waddstr(MainMenu,"CONTINUE....'c'");
-	wmove(MainMenu,7,1);
-	waddstr(MainMenu,"EXIT........'e'");
-	wrefresh(MainMenu);
-*/
-}
-
-void gameMenuClose()
-{
-//	delwin(MainMenu);
-//	MainMenu=NULL;
-}
-
-
 
 
 //============================= MAIN ======================================
