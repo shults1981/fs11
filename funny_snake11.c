@@ -10,8 +10,8 @@
 
 * Data create                                     :10/10/2018
 
-* Purpose                                         :classcal game Snake;
- 						   testing librery gtk 
+* Purpose                                         :classical game Snake;
+ 						   testing library gtk 
 
 |***************************************************************************
 |***************************************************************************
@@ -64,7 +64,7 @@ typedef struct _unit
 } Unit;
 
 
-typedef enum _game_status {game_exit=0, game_menu, game_on, game_over,game_next_level} GameStatus;
+typedef enum _game_status {game_exit=0, game_menu, game_on,game_over,game_new,game_next_level} GameStatus;
 
 
 
@@ -553,7 +553,7 @@ static void activate(GtkApplication *app, gpointer userdata)
 	window=gtk_application_window_new(app);
 	gtk_window_set_title(GTK_WINDOW(window),"FunnySnake11");
 	gtk_window_set_default_size(GTK_WINDOW(window),300,300);
-	//gtk_window_set_resizable(GTK_WINDOW(window),FALSE);
+	gtk_window_set_resizable(GTK_WINDOW(window),FALSE);
 
 	g_signal_connect(window,"destroy",G_CALLBACK(close_window),NULL);
 
@@ -589,6 +589,17 @@ static gboolean _GameTic_ (gpointer data)
 
 int Game(int state)
 {
+	if (GST==game_new)
+	{
+		CreateGameFild();
+		rabbitInFild=0;
+		move_flag=rand()%4+1;
+		RabbitWasEaten=0;
+		Score=0;
+		Level=1;
+		InitUnits();
+		GST=game_on;
+	}
 	if (GST==game_on){
 		RabbitFactory();
 		SnakeMoveToOneStep(move_flag,0);
@@ -625,9 +636,9 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	GtkStyleContext *context;
 
 	guint  x,y;
-	guint i,k,m,hStep,vStep;
+	guint i,k,m;//,hStep,vStep;
 	guint scr_border_x_min,scr_border_x_max,scr_border_y_min,scr_border_y_max;
-
+	gfloat hStep,vStep;
 
 	context=gtk_widget_get_style_context(widget);
 
@@ -641,11 +652,15 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	scr_border_y_min=(Y_max-9*Y_max/10);
 	scr_border_y_max=(Y_max-1*Y_max/10);
 
-	hStep=(scr_border_x_max-scr_border_x_min)/border_x_max;
-	vStep=(scr_border_y_max-scr_border_y_min)/border_y_max;
-	
-//	g_print("%d\n",X_max);
-//	g_print("%d\n",Y_max);
+	hStep=(gfloat)(scr_border_x_max-scr_border_x_min)/(gfloat)(border_x_max-border_x_min);
+	vStep=(gfloat)(scr_border_y_max-scr_border_y_min)/(gfloat)(border_y_max-border_y_min);
+
+/*	// same information for debug
+	g_print("%d -- %d\n",X_max,Y_max);
+	g_print("%d -- %d\n",scr_border_x_min,scr_border_x_max);
+	g_print("%d -- %d\n",scr_border_y_min,scr_border_y_max);
+	g_print("%f -- %f\n",hStep,vStep);
+*/
 
 	gtk_render_background(context,cr,0,0,width,height);
 
@@ -691,8 +706,8 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 		// -- menu border
 		cairo_move_to (cr,scr_border_x_max/2-25,scr_border_y_max/2-10);
 		cairo_line_to(cr,scr_border_x_max/2+65,scr_border_y_max/2-10);
-		cairo_line_to(cr,scr_border_x_max/2+65,scr_border_y_max/2+35);
-		cairo_line_to(cr,scr_border_x_max/2-25,scr_border_y_max/2+35);
+		cairo_line_to(cr,scr_border_x_max/2+65,scr_border_y_max/2+45);
+		cairo_line_to(cr,scr_border_x_max/2-25,scr_border_y_max/2+45);
 		cairo_line_to(cr,scr_border_x_max/2-25,scr_border_y_max/2-10);
 		cairo_set_line_width(cr,1.0);
 		cairo_stroke(cr);
@@ -702,8 +717,10 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 		cairo_move_to(cr,scr_border_x_max/2-20,scr_border_y_max/2+10);
 		cairo_show_text(cr,"NEW GAME....'n'");
 		cairo_move_to(cr,scr_border_x_max/2-20,scr_border_y_max/2+20);
-		cairo_show_text(cr,"CONTINIE.......'c'");
+		cairo_show_text(cr,"MENU/PAUSE.'m'");
 		cairo_move_to(cr,scr_border_x_max/2-20,scr_border_y_max/2+30);
+		cairo_show_text(cr,"CONTINUE.......'c'");
+		cairo_move_to(cr,scr_border_x_max/2-20,scr_border_y_max/2+40);
 		cairo_show_text(cr,"EXIT.....'ALT+F4'");
 	}
 
@@ -787,15 +804,8 @@ static void key_mon(GtkWidget *widget,GdkEvent *event,gpointer udata)
 				g_print("Presed key -e-\n");
 				break;
 			case GDK_KEY_n:
-				GST=game_on;
+				GST=game_new;
 				g_print("Pressed key -n-\n");
-				CreateGameFild();
-				rabbitInFild=0;
-				move_flag=rand()%4+1;
-				RabbitWasEaten=0;
-				Score=0;
-				Level=1;
-				InitUnits();
 				break;
 			case GDK_KEY_c:
 				if(Snake && Rabbit)
