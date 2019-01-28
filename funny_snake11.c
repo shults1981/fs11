@@ -109,7 +109,7 @@ static void close_window(void);
 static gboolean render_(GtkWidget *widget,cairo_t *cr,gpointer udata);
 static void key_mon(GtkWidget *widget,GdkEvent *event,gpointer udata);
 static gboolean _GameTic_ (gpointer data);
-int Game(int state);
+int Game(int state,gpointer data);
 
 void CreateGameFild();
 int InitUnits();
@@ -582,13 +582,16 @@ static gboolean _GameTic_ (gpointer data)
 	GtkWidget *drawing_area;
 	drawing_area=(GtkWidget*)data;
 	gti(1);
-	Game(1);
+	Game(1,data);
 	gtk_widget_queue_draw(drawing_area);
 	return TRUE;
 }
 
-int Game(int state)
+int Game(int state,gpointer data)
 {
+	GtkWidget *drawing_area;
+	drawing_area=(GtkWidget*)data;
+
 	if (GST==game_new)
 	{
 		CreateGameFild();
@@ -617,6 +620,7 @@ int Game(int state)
 				Level++;
 				InitUnits();
 				//timer setpoint value
+				g_timeout_add(100, _GameTic_ ,drawing_area);
 /*				tmr1.it_value.tv_sec=0;
 				tmr1.it_value.tv_usec=200000-Level*10000;
 				tmr1.it_interval.tv_sec=0;
