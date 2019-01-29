@@ -89,7 +89,7 @@ static int Level;
 static int GameImpuls=0;
 static int ImpulsFront=0;
 static int Watchdog=0;
-
+guint source_id;
 
 
 //------------------ declaretion  handlers and functions -------------------------
@@ -217,7 +217,7 @@ void SnakeMoveToOneStep(int mv_flag,int kill_self_flag)
 if (GST==game_on)
 {
 
-	border_crash=!((Snake->cord[0]._x>border_x_min)&&(Snake->cord[0]._x<border_x_max)&&(Snake->cord[0]._y>border_y_min)&&(Snake->cord[0]._y<border_y_max));
+	border_crash=!((Snake->cord[0]._x>=border_x_min)&&(Snake->cord[0]._x<=border_x_max)&&(Snake->cord[0]._y>=border_y_min)&&(Snake->cord[0]._y<=border_y_max));
 	if(kill_self_flag){
 		for (i=1;i<Snake->len;i++)
 			if((Snake->cord[0]._x==Snake->cord[i]._x)&&(Snake->cord[0]._y==Snake->cord[i]._y))
@@ -553,7 +553,7 @@ static void activate(GtkApplication *app, gpointer userdata)
 	window=gtk_application_window_new(app);
 	gtk_window_set_title(GTK_WINDOW(window),"FunnySnake11");
 	gtk_window_set_default_size(GTK_WINDOW(window),300,300);
-	gtk_window_set_resizable(GTK_WINDOW(window),FALSE);
+	//gtk_window_set_resizable(GTK_WINDOW(window),FALSE);
 
 	g_signal_connect(window,"destroy",G_CALLBACK(close_window),NULL);
 
@@ -571,7 +571,7 @@ static void activate(GtkApplication *app, gpointer userdata)
 
 	g_signal_connect(window,"key_press_event",G_CALLBACK(key_mon),NULL);
 
-	g_timeout_add(200, _GameTic_ ,drawing_area);
+	source_id=g_timeout_add(200, _GameTic_ ,drawing_area);
 
 
 	gtk_widget_show_all(window);
@@ -602,6 +602,8 @@ int Game(int state,gpointer data)
 		Level=1;
 		InitUnits();
 		GST=game_on;
+		g_source_remove(source_id);
+		source_id=g_timeout_add(200, _GameTic_ ,drawing_area);
 	}
 	if (GST==game_on){
 		RabbitFactory();
@@ -620,13 +622,9 @@ int Game(int state,gpointer data)
 				Level++;
 				InitUnits();
 				//timer setpoint value
-				g_timeout_add(100, _GameTic_ ,drawing_area);
-/*				tmr1.it_value.tv_sec=0;
-				tmr1.it_value.tv_usec=200000-Level*10000;
-				tmr1.it_interval.tv_sec=0;
-				tmr1.it_interval.tv_usec=200000-Level*10000;
-				setitimer(ITIMER_REAL,&tmr1,NULL);// timer whith new setpoint by level
-*/
+				g_source_remove(source_id);
+				source_id=g_timeout_add(200-Level*10, _GameTic_ ,drawing_area);
+
 	}
 
 	g_print ("game step\n");
@@ -640,7 +638,7 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	GtkStyleContext *context;
 
 	guint  x,y;
-	guint i,k,m;//,hStep,vStep;
+	guint i,k,m;
 	guint scr_border_x_min,scr_border_x_max,scr_border_y_min,scr_border_y_max;
 	gfloat hStep,vStep;
 
@@ -675,10 +673,12 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	color.blue=0.0;
 	color.alpha=1.0;
 	gdk_cairo_set_source_rgba(cr,&color);
+
+
 	cairo_move_to (cr,scr_border_x_min,scr_border_y_min);
-	cairo_line_to(cr,scr_border_x_max,scr_border_y_min);
-	cairo_line_to(cr,scr_border_x_max,scr_border_y_max);
-	cairo_line_to(cr,scr_border_x_min,scr_border_y_max);
+	cairo_line_to(cr,scr_border_x_max+hStep,scr_border_y_min);
+	cairo_line_to(cr,scr_border_x_max+hStep,scr_border_y_max+vStep);
+	cairo_line_to(cr,scr_border_x_min,scr_border_y_max+vStep);
 	cairo_line_to(cr,scr_border_x_min,scr_border_y_min);
 	cairo_set_line_width(cr,1.0);
 	cairo_stroke(cr);	
@@ -765,15 +765,15 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 
 		//====  information ====
 		sprintf (str_BUF1,"%d",Score);
-		cairo_move_to(cr,scr_border_x_min,scr_border_y_max+10);
+		cairo_move_to(cr,scr_border_x_min,scr_border_y_max+15);
 		cairo_show_text(cr,"Score-");
-		cairo_move_to(cr,scr_border_x_min+60,scr_border_y_max+10);
+		cairo_move_to(cr,scr_border_x_min+60,scr_border_y_max+15);
 		cairo_show_text(cr,str_BUF1);
 
 		sprintf (str_BUF2,"%d",Level);
-		cairo_move_to(cr,scr_border_x_min,scr_border_y_max+20);
+		cairo_move_to(cr,scr_border_x_min,scr_border_y_max+25);
 		cairo_show_text(cr,"Level-");
-		cairo_move_to(cr,scr_border_x_min+60,scr_border_y_max+20);
+		cairo_move_to(cr,scr_border_x_min+60,scr_border_y_max+25);
 		cairo_show_text(cr,str_BUF2);
 	}
 
@@ -872,104 +872,6 @@ int main (int argc, char** argv)
 
 
 	
-	//--------------------- main cicle---------------		
-/*
-	while (PRG)
-	{
-		ch=wgetch(stdscr);
-		
-		if (ch=='m')
-		{
-			GST=game_menu;
-		}
-
-
-		if ((GST==game_menu)||(GST==game_over))
-		{
-			if (!MainMenu)
-				gameMenuOpen();
-			switch (ch)
-			{
-			case 'e':
-				GST=game_exit;
-				gameMenuClose();
-				PRG=0;
-				break;
-			case 'n':
-				GST=game_on;
-				gameMenuClose();
-				CreateGameFild();
-				rabbitInFild=0;
-				move_flag=rand()%4+1;
-				RabbitWasEaten=0;
-				Score=0;
-				Level=1;
-				InitUnits();
-				//timer setpoint value
-				tmr1.it_value.tv_sec=0;
-				tmr1.it_value.tv_usec=200000;
-				tmr1.it_interval.tv_sec=0;
-				tmr1.it_interval.tv_usec=200000;
-				setitimer(ITIMER_REAL,&tmr1,NULL);// timer whith new setpoint by level
-				break;
-			case 'c':
-				if(Snake && Rabbit)
-				{
-					GST=game_on;
-					gameMenuClose();
-					CreateGameFild();
-				}
-				break;
-			
-			}		
-		}	
-
-		
-		if (GST==game_on){
-			if (GameImpuls!=Watchdog){
-				ImpulsFront=1;
-				Watchdog=GameImpuls;
-			}
-			else{
-				ImpulsFront=0;
-			}
-
-			snake_control(ch);
-			
-			if (ImpulsFront){
-				rander(0);
-				RabbitFactory();
-				SnakeMoveToOneStep(move_flag,0);
-				if(Score>=NumNextLevelJump)
-					GST=game_next_level;
-				rander(1);
-
-
-				 
-			}
-		}
-
-		if (GST==game_next_level){
-				DestroyUnits();
-				GST=game_on;
-				CreateGameFild();
-				rabbitInFild=0;
-				move_flag=rand()%4+1;
-				RabbitWasEaten=0;
-				Score=0;
-				Level++;
-				InitUnits();
-				//timer setpoint value
-				tmr1.it_value.tv_sec=0;
-				tmr1.it_value.tv_usec=200000-Level*10000;
-				tmr1.it_interval.tv_sec=0;
-				tmr1.it_interval.tv_usec=200000-Level*10000;
-				setitimer(ITIMER_REAL,&tmr1,NULL);// timer whith new setpoint by level
-		}
-	}
-	//-----------------------end of main cicle----------------
-		
-*/
 	//----------- delete units  -----------
 	DestroyUnits();
 	g_print("exit app\n");
