@@ -90,7 +90,7 @@ static int GameImpuls=0;
 static int ImpulsFront=0;
 static int Watchdog=0;
 guint source_id;
-
+guint delay_cnt;
 
 //------------------ declaretion  handlers and functions -------------------------
 void gti(int);
@@ -591,6 +591,7 @@ int Game(int state,gpointer data)
 {
 	GtkWidget *drawing_area;
 	drawing_area=(GtkWidget*)data;
+	guint pause=5;
 
 	if (GST==game_new)
 	{
@@ -602,6 +603,7 @@ int Game(int state,gpointer data)
 		Level=1;
 		InitUnits();
 		GST=game_on;
+		delay_cnt=0;
 		g_source_remove(source_id);
 		source_id=g_timeout_add(200, _GameTic_ ,drawing_area);
 	}
@@ -612,20 +614,37 @@ int Game(int state,gpointer data)
 			GST=game_next_level;
 	}
 
-	if (GST==game_next_level){
-				DestroyUnits();
-				GST=game_on;
-				rabbitInFild=0;
-				move_flag=rand()%4+1;
-				RabbitWasEaten=0;
-				Score=0;
-				Level++;
-				InitUnits();
-				//timer setpoint value
-				g_source_remove(source_id);
-				source_id=g_timeout_add(200-Level*10, _GameTic_ ,drawing_area);
-
+	if (GST==game_next_level)
+	{
+		if ((delay_cnt++)>pause)
+		{
+			DestroyUnits();
+			GST=game_on;
+			rabbitInFild=0;
+			move_flag=rand()%4+1;
+			RabbitWasEaten=0;
+			Score=0;
+			Level++;
+			delay_cnt=0;
+			InitUnits();
+			//timer setpoint value
+			g_source_remove(source_id);
+			source_id=g_timeout_add(200-Level*10, _GameTic_ ,drawing_area);
+		}
 	}
+
+//	if (GST==game_next_level)
+//	{
+//		if ((delay_cnt++)>pause)
+//			GST=game_menu;
+//	}
+
+	if (GST==game_over)
+	{
+		if ((delay_cnt++)>pause)
+			GST=game_menu;
+	}
+
 
 	g_print ("game step\n");
 	return 0;
@@ -680,7 +699,7 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	cairo_line_to(cr,scr_border_x_max+hStep,scr_border_y_max+vStep);
 	cairo_line_to(cr,scr_border_x_min,scr_border_y_max+vStep);
 	cairo_line_to(cr,scr_border_x_min,scr_border_y_min);
-	cairo_set_line_width(cr,1.0);
+	cairo_set_line_width(cr,2.0);
 	cairo_stroke(cr);	
 
 	cairo_move_to(cr,scr_border_x_min,scr_border_y_min-10);
@@ -705,7 +724,7 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 
 	
 //*************************************************
-	if (GST==game_menu||GST==game_over)
+	if (GST==game_menu)
 	{
 		// -- menu border
 		cairo_move_to (cr,scr_border_x_max/2-25,scr_border_y_max/2-10);
@@ -775,6 +794,11 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 		cairo_show_text(cr,"Level-");
 		cairo_move_to(cr,scr_border_x_min+60,scr_border_y_max+25);
 		cairo_show_text(cr,str_BUF2);
+	}
+	if (GST==game_next_level)
+	{
+		cairo_move_to(cr,scr_border_x_max/2-30,scr_border_y_max/2-20);
+		cairo_show_text(cr,"N E X T    L E V E L !!!!!");
 	}
 
 	if (GST==game_over)
