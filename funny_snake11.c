@@ -32,20 +32,13 @@
 
 
 //---------------------------------------------------------------
-/*
-#define border_x_min (X_max-9*X_max/10)
-#define border_x_max (X_max-1*X_max/10)
-#define border_y_min (Y_max-9*Y_max/10)
-#define border_y_max (Y_max-1*Y_max/10)
-*/
+
 #define border_x_min 0
 #define border_x_max 50
 #define border_y_min 0
 #define border_y_max 50
 
-
-
-#define NumNextLevelJump 6
+//#define NumNextLevelJump 6
 
 typedef struct _point
 {
@@ -89,8 +82,16 @@ static int Level;
 static int GameImpuls=0;
 static int ImpulsFront=0;
 static int Watchdog=0;
-guint source_id;
-guint delay_cnt;
+static guint source_id;
+static guint delay_cnt;
+static guint TimeBase;
+static guint LevelTimeStep;
+static guint GamePause;
+static guint  NumNextLevelJump;
+
+
+GtkWidget *wnd;
+
 
 //------------------ declaretion  handlers and functions -------------------------
 void gti(int);
@@ -136,7 +137,7 @@ void snake_control (int ch)
 			else
 				if ((Snake->len>1)&&(!(Snake->cord[0]._d==2)))
 					move_flag=1;
-			g_print("Pressed key -Left key-\n");
+//			g_print("Pressed key -Left key-\n");
 			break;
 			
 		case GDK_KEY_Right:
@@ -145,7 +146,7 @@ void snake_control (int ch)
 			else
 				if ((Snake->len>1)&&(!(Snake->cord[0]._d==1)))
 					move_flag=2;
-			g_print("Pressed key -Right key-\n");
+//			g_print("Pressed key -Right key-\n");
 			break;
 
 		case GDK_KEY_Up:
@@ -154,7 +155,7 @@ void snake_control (int ch)
 			else			
 				if ((Snake->len>1)&&(!(Snake->cord[0]._d==4)))
 					move_flag=3;	
-			g_print("Pressed key -Up key-\n");
+//			g_print("Pressed key -Up key-\n");
 			break;
 
 		case GDK_KEY_Down:	
@@ -180,8 +181,8 @@ if (GST==game_on)
 	RabbitWasEaten=0;
 	if (!rabbitInFild)
 	{
-		Rabbit->cord->_x=border_x_min+rand()%((border_x_max-border_x_min)); // huinya!!!!
-		Rabbit->cord->_y=border_y_min+rand()%((border_y_max-border_y_min)); // huinya!!!!
+		Rabbit->cord->_x=border_x_min+rand()%((border_x_max-border_x_min)); // !!!!
+		Rabbit->cord->_y=border_y_min+rand()%((border_y_max-border_y_min)); // !!!!
 		rabbitInFild=1;
 	}
 	else 
@@ -550,7 +551,7 @@ static void activate(GtkApplication *app, gpointer userdata)
 	GtkWidget *drawing_area;
 
 
-	window=gtk_application_window_new(app);
+	wnd=window=gtk_application_window_new(app);
 	gtk_window_set_title(GTK_WINDOW(window),"FunnySnake11");
 	gtk_window_set_default_size(GTK_WINDOW(window),300,300);
 	//gtk_window_set_resizable(GTK_WINDOW(window),FALSE);
@@ -571,7 +572,7 @@ static void activate(GtkApplication *app, gpointer userdata)
 
 	g_signal_connect(window,"key_press_event",G_CALLBACK(key_mon),NULL);
 
-	source_id=g_timeout_add(200, _GameTic_ ,drawing_area);
+	source_id=g_timeout_add(TimeBase, _GameTic_ ,drawing_area);
 
 
 	gtk_widget_show_all(window);
@@ -591,60 +592,56 @@ int Game(int state,gpointer data)
 {
 	GtkWidget *drawing_area;
 	drawing_area=(GtkWidget*)data;
-	guint pause=5;
 
-	if (GST==game_new)
-	{
-		CreateGameFild();
-		rabbitInFild=0;
-		move_flag=rand()%4+1;
-		RabbitWasEaten=0;
-		Score=0;
-		Level=1;
-		InitUnits();
-		GST=game_on;
-		delay_cnt=0;
-		g_source_remove(source_id);
-		source_id=g_timeout_add(200, _GameTic_ ,drawing_area);
-	}
-	if (GST==game_on){
-		RabbitFactory();
-		SnakeMoveToOneStep(move_flag,0);
-		if(Score>=NumNextLevelJump)
-			GST=game_next_level;
-	}
-
-	if (GST==game_next_level)
-	{
-		if ((delay_cnt++)>pause)
-		{
+	switch (GST){
+		case game_new:
 			DestroyUnits();
-			GST=game_on;
 			rabbitInFild=0;
 			move_flag=rand()%4+1;
 			RabbitWasEaten=0;
 			Score=0;
-			Level++;
-			delay_cnt=0;
+			Level=1;
 			InitUnits();
-			//timer setpoint value
+			GST=game_on;
+			delay_cnt=0;
 			g_source_remove(source_id);
-			source_id=g_timeout_add(200-Level*10, _GameTic_ ,drawing_area);
-		}
-	}
-
-//	if (GST==game_next_level)
-//	{
-//		if ((delay_cnt++)>pause)
-//			GST=game_menu;
-//	}
-
-	if (GST==game_over)
-	{
-		if ((delay_cnt++)>pause)
+			source_id=g_timeout_add(TimeBase, _GameTic_ ,drawing_area);
+			break;
+		case game_on:
+			RabbitFactory();
+			SnakeMoveToOneStep(move_flag,0);
+			if(Score>=NumNextLevelJump)
+				GST=game_next_level;
+			break;
+		case game_next_level:
+			if ((delay_cnt++)>GamePause)
+			{
+				DestroyUnits();
+				GST=game_on;
+				rabbitInFild=0;
+				move_flag=rand()%4+1;
+				RabbitWasEaten=0;
+				Score=0;
+				Level++;
+				delay_cnt=0;
+				InitUnits();
+				g_source_remove(source_id);
+				source_id=g_timeout_add(TimeBase-(Level-1)*LevelTimeStep, _GameTic_ ,drawing_area);
+			}
+			break;
+		case game_over:
+			if ((delay_cnt++)>GamePause)
+				GST=game_menu;
+			break;
+		case game_exit:
+//			g_source_remove(source_id);
+//			g_signal_emit_by_name(wnd,"destroy");
 			GST=game_menu;
-	}
+			break;
 
+		default:
+		       	break;
+	}
 
 	g_print ("game step\n");
 	return 0;
@@ -676,17 +673,9 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	hStep=(gfloat)(scr_border_x_max-scr_border_x_min)/(gfloat)(border_x_max-border_x_min);
 	vStep=(gfloat)(scr_border_y_max-scr_border_y_min)/(gfloat)(border_y_max-border_y_min);
 
-/*	// same information for debug
-	g_print("%d -- %d\n",X_max,Y_max);
-	g_print("%d -- %d\n",scr_border_x_min,scr_border_x_max);
-	g_print("%d -- %d\n",scr_border_y_min,scr_border_y_max);
-	g_print("%f -- %f\n",hStep,vStep);
-*/
-
 	gtk_render_background(context,cr,0,0,width,height);
 
 	//---------- Make game fild ----------------------
-	
 	color.red=0.0;
 	color.green=0.0;
 	color.blue=0.0;
@@ -703,7 +692,7 @@ static gboolean  render_(GtkWidget *widget, cairo_t *cr,gpointer udata)
 	cairo_stroke(cr);	
 
 	cairo_move_to(cr,scr_border_x_min,scr_border_y_min-10);
-	cairo_show_text(cr,"!!!! ");
+	cairo_show_text(cr," Game SNAKE  ");
 
 /*
 	for (k=scr_border_x_min;k<scr_border_x_max;k+=hStep)
@@ -821,25 +810,20 @@ static void key_mon(GtkWidget *widget,GdkEvent *event,gpointer udata)
 
 	if (key_event->keyval==GDK_KEY_m){
 		GST=game_menu;
-		g_print ("Pressed key -m-\n");
-
 	}
 
 	if (GST==game_menu||GST==game_over){
 		switch (key_event->keyval)  {
 			case GDK_KEY_e:
 				GST=game_exit;
-				g_print("Presed key -e-\n");
 				break;
 			case GDK_KEY_n:
 				GST=game_new;
-				g_print("Pressed key -n-\n");
 				break;
 			case GDK_KEY_c:
 				if(Snake && Rabbit)
 				{
 					GST=game_on;
-					g_print("Pressed key -c-\n");
 				}
 				break;	
 			default:
@@ -860,13 +844,6 @@ if (surface)
 }
 //---======================********************-------------------------
 
-
-void CreateGameFild()
-{
-
-}
-
-
 //============================= MAIN ======================================
 		
 int main (int argc, char** argv)
@@ -884,7 +861,10 @@ int main (int argc, char** argv)
 	Snake=NULL;
 	Rabbit=NULL;
 	GST=game_menu;	
-
+	TimeBase=200;  //
+	GamePause=5;
+	LevelTimeStep=20; //
+ 	NumNextLevelJump=6;
 	srand(time(NULL));
 	
 	// ------initialize GTK 
@@ -895,7 +875,6 @@ int main (int argc, char** argv)
 	g_object_unref(app);
 
 
-	
 	//----------- delete units  -----------
 	DestroyUnits();
 	g_print("exit app\n");
